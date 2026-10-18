@@ -36,7 +36,7 @@ impl Default for Snapshot {
             partial_path: None,
             result: None,
             error: None,
-            logs: vec!["Xiso Harbor 1.0.1 • xdvdfs 0.8.3 • native arm64".into()],
+            logs: vec!["Xiso Harbor 1.0.2 • xdvdfs 0.8.3 • native arm64".into()],
         }
     }
 }
@@ -155,7 +155,11 @@ async fn choose_iso(
             "Selection is locked.",
         ));
     }
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| AppError::invalid("The main application window is unavailable."))?;
     let Some(file) = rfd::AsyncFileDialog::new()
+        .set_parent(&window)
         .set_title("Choose an Xbox disc image")
         .add_filter("Xbox disc images", &["iso", "xiso"])
         .pick_file()
@@ -194,7 +198,11 @@ async fn choose_folder(
             "Destination is locked.",
         ));
     }
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| AppError::invalid("The main application window is unavailable."))?;
     let Some(folder) = rfd::AsyncFileDialog::new()
+        .set_parent(&window)
         .set_title("Save extracted games to")
         .pick_folder()
         .await
@@ -425,7 +433,7 @@ fn copy_diagnostics(state: State<'_, Arc<Session>>, error: Option<AppError>) -> 
     use objc2_foundation::NSString;
     let snapshot = state.snapshot.lock().unwrap();
     let mut report = format!(
-        "Xiso Harbor 1.0.1 / xdvdfs 0.8.3 / arm64\nState: {}\nFiles: {}/{}\nBytes: {}/{}\n",
+        "Xiso Harbor 1.0.2 / xdvdfs 0.8.3 / arm64\nState: {}\nFiles: {}/{}\nBytes: {}/{}\n",
         snapshot.status,
         snapshot.progress.files_done,
         snapshot.progress.total_files,

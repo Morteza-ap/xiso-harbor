@@ -1,8 +1,9 @@
 [package]
 name = "xbox-iso-extractor"
-version = "1.0.1"
+version = "1.0.2"
 description = "Local Xbox disc image extraction for Apple Silicon"
 edition = "2021"
+license = "MIT"
 default-run = "xbox-iso-extractor"
 
 [build-dependencies]

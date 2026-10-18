@@ -1,13 +1,15 @@
 {
   "reviewDate": "2026-10-18",
-  "sourceSnapshot": "clean initial snapshot; prior Git history and tags were not imported",
+  "sourceSnapshot": "Clean initial snapshot plus experimental 1.0.2 release; prior repository history was not imported.",
   "trackedSourceScan": "passed",
   "packagedAppleSiliconAppScan": "passed",
   "appSignatureVerification": "passed (ad-hoc; not notarized)",
-  "appExecutableSHA256": "f6c11f6472504ed4b5526f9a5930616b6673f2e11d2d17982bfdf72c1037087e",
+  "appExecutableSHA256": "b7a92aef235c7ab766477f7e7b4f9c782196db09f3f4dc5a0ae2af4ba58775fb",
   "limitations": [
     "Targeted privacy checks cannot prove that every possible personal detail or secret has been excluded.",
     "Public repository ownership and account activity can identify the publisher.",
     "The app is not security-certified and does not claim every hostile image is safe to extract."
-  ]
+  ],
+  "appVersion": "1.0.2",
+  "releaseEvidence": "release-1.0.2.md"
 }

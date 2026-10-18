@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased — local review
+## 1.0.2 — Experimental public download
+
+- Published a self-contained Apple Silicon `.app` in a ZIP; no developer tools are needed to run it.
+- Added the MIT project license and bundled it alongside third-party notices.
+- Documented installation, macOS first-launch approval, offline behavior, local recovery data, and experiment limitations.
+- Enabled private vulnerability reporting for the public repository.
+- Bound native disc and destination dialogs to the main window explicitly, avoiding reliance on macOS choosing a parent after an earlier sheet closes.
 
 - Simplified the UI to a compact green-to-dark console style.
 - Added an 840-point window width limit and a consistent dark appearance.

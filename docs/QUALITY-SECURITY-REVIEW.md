@@ -2,7 +2,7 @@
 
 **Review date:** 2026-10-17 · **Build:** 1.0.1 · **Target:** aarch64-apple-darwin
 
-This is an in-repository engineering review, automated dependency scan, and regression test pass. It is not an independent penetration test, security certification, or guarantee against every hostile image. The repository and release remain private for the owner's review.
+This is a historical in-repository engineering review, automated dependency scan, and regression test pass for 1.0.1. It is not an independent penetration test, security certification, or guarantee against every hostile image. See [the 1.0.2 release verification](review/release-1.0.2.md) for the current experimental download. The project now uses MIT and has private vulnerability reporting enabled.
 
 ## Findings and changes
 
@@ -66,7 +66,7 @@ The app remains ad-hoc signed, without Developer ID or Apple notarization. It is
 - A malicious process already running as the same user is outside the defended threat model. The code rejects observed symlinks but does not use a fully directory-handle-relative filesystem implementation for every operation.
 - Source size/modification-time and output size/type checks cannot authenticate an image or detect all pre-existing source corruption.
 - An independent audit, continuous fuzzing, and a clean second-Mac Gatekeeper installation were not performed.
-- A project license and a private security-reporting channel need decisions before any public release. Shared logs omit machine paths. The [repository privacy review](PRIVACY.md) records sanitized branch/tag history and the remaining archived-download and retained-reference limits.
+- At the time of this review, licensing and private security reporting were still pending. Version 1.0.2 resolves these with MIT and GitHub private vulnerability reporting. Shared logs omit machine paths; current release hygiene and account-identity limits are described in [Privacy](PRIVACY.md).
 
 ## Reproduce and inspect
 

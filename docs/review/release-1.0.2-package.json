@@ -1,0 +1,11 @@
+{
+  "version": "1.0.2",
+  "gui": "Final ZIP unpacked with macOS ditto; native disc picker, destination picker, extraction and completion verified.",
+  "files": 5,
+  "bytes": 4492,
+  "sha256Verification": "Every output file matched independently generated fixture payloads.",
+  "zipRoundTrip": "Every app file and permission matched the signed build; no ZIP ownership/extended-attribute/timestamp extras.",
+  "executableSHA256": "b7a92aef235c7ab766477f7e7b4f9c782196db09f3f4dc5a0ae2af4ba58775fb",
+  "zipSHA256": "29c2b8cc2cea5e3e7e97da6e7d400f0d91729ae201533ab137627ab74cb8d711",
+  "finderReveal": "Passed: the extracted folder was selected in Finder."
+}

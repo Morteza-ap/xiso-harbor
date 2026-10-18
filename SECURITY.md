@@ -4,13 +4,13 @@ Xiso Harbor is a small, offline extraction utility. It reads ISO/XISO files and 
 
 ## Supported build
 
-The latest private review build, **1.0.1**, targets Apple Silicon macOS. Support is best effort. We do not promise a response time or security certification.
+The current experimental release, **1.0.2**, targets Apple Silicon macOS. Support is best effort. We do not promise a response time or security certification.
 
 ## Report a problem
 
-While this repository is private, collaborators can report a suspected security issue in a private repository issue. Include the version, macOS version, what happened, and a minimal synthetic reproduction when possible. Do not post commercial ISOs, credentials, personal files, or unsanitized logs.
+Report suspected security issues through [GitHub's private vulnerability reporting](https://github.com/Morteza-ap/xiso-harbor/security/advisories/new), which is enabled for this repository. Include the version, macOS version, what happened, and a minimal synthetic reproduction when possible. Do not post commercial ISOs, credentials, personal files, or unsanitized logs.
 
-Before a public release, a private vulnerability-reporting channel must be configured and this section updated. Ordinary extraction and interface bugs can use GitHub Issues.
+Please keep vulnerability details out of public issues until they have been assessed. Ordinary extraction and interface bugs can use GitHub Issues.
 
 ## What we protect
 

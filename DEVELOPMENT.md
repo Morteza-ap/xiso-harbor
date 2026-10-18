@@ -60,7 +60,9 @@ No commercial game content is included in fixtures. They may be redistributed fr
 
 ## Signing and distribution
 
-The bundle uses ad-hoc signing (`-`). It is not Developer-ID-signed or notarized. For public distribution, use your own Apple Developer credentials and the official Tauri/macOS signing and notarization flow. No credentials or signing accounts are included. Do not weaken system-wide Gatekeeper settings.
+The experimental download uses ad-hoc signing (`-`). It is not Developer-ID-signed or notarized, so macOS may require a per-app first-launch exception; see the README. Developer ID signing and notarization remain a possible future improvement. No credentials or signing accounts are included. Do not weaken system-wide Gatekeeper settings.
+
+The MIT license, third-party notices, and dependency license texts are bundled in `Contents/Resources`. Archive a finished bundle with `python3 scripts/zip-app.py <app> <output.zip>`. This preserves executable permissions and bundle contents while omitting host ownership, extended attributes, and local timestamps. The output must not already exist. A user's browser may still apply download quarantine normally. Unpack the ZIP with macOS `ditto -x -k`, verify the copied app with `codesign --verify --deep --strict`, and run `scripts/check-privacy.py --history --artifact <zip>` before uploading. Publish a SHA-256 checksum with the download.
 
 ## Quality and security review
 

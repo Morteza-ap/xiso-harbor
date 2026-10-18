@@ -382,7 +382,7 @@ function App() {
   async function copyDetails() {
     // Full host paths and absolute destination names are intentionally excluded.
     const report = [
-      "Xiso Harbor 1.0.1 / xdvdfs 0.8.3 / arm64",
+      "Xiso Harbor 1.0.2 / xdvdfs 0.8.3 / arm64",
       `State: ${s.status}`,
       `Category: ${error?.category ?? "none"}`,
       error?.message ?? "",
