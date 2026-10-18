@@ -1,0 +1,35 @@
+   Compiling xbox-iso-extractor v1.0.0 (<project>/src-tauri)
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> <project>/vendor/xdvdfs/src/layout.rs:293:24
+    |
+293 |     pub fn name_str<E>(&self) -> Result<alloc::borrow::Cow<str>, util::Error<E>> {
+    |                        ^^^^^            ----------------------- the same lifetime is hidden here
+    |                        |
+    |                        the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+293 |     pub fn name_str<E>(&self) -> Result<alloc::borrow::Cow<'_, str>, util::Error<E>> {
+    |                                                            +++
+
+warning: `xdvdfs` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.42s
+     Running unittests src/main.rs (<target>/debug/deps/xbox_iso_extractor-36d3a7f46fac9f28)
+
+running 11 tests
+test engine::tests::insufficient_space_preflight_creates_nothing ... ok
+test engine::tests::rejects_case_collisions_before_creating_output ... ok
+test engine::tests::refuses_cleanup_when_partial_is_replaced_by_symlink ... ok
+test engine::tests::retains_disc_names_and_finds_unique_suffix ... ok
+test engine::tests::corrupted_directory_cycles_are_bounded ... ok
+test engine::tests::cancellation_leaves_only_managed_partial ... ok
+test engine::tests::refuses_to_commit_when_the_source_changes ... ok
+test engine::tests::never_overwrites_existing_destination_even_at_commit ... ok
+test engine::tests::rejects_truncated_and_invalid_images ... ok
+test engine::tests::native_roundtrip_and_case_insensitive_xex ... ok
+test engine::tests::rejects_traversal_and_unsafe_names ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

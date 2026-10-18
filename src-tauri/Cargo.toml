@@ -1,0 +1,34 @@
+[package]
+name = "xbox-iso-extractor"
+version = "1.0.1"
+description = "Local Xbox disc image extraction for Apple Silicon"
+edition = "2021"
+default-run = "xbox-iso-extractor"
+
+[build-dependencies]
+tauri-build = { version = "=2.7.3", features = [] }
+
+[dependencies]
+tauri = { version = "=2.12.4", features = [] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+rfd = "=0.15.4"
+libc = "=0.2.177"
+uuid = { version = "=1.18.1", features = ["v4"] }
+unicode-normalization = "=0.1.24"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSPasteboard"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSString"] }
+xdvdfs = { path = "../vendor/xdvdfs", version = "=0.8.3", default-features = false, features = ["std", "read", "sync"] }
+
+[dev-dependencies]
+tempfile = "=3.23.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+# Keep symbols: stripping build-time proc-macro dylibs with this Apple linker
+# can produce a misaligned LINKEDIT string pool on macOS 27.
+strip = false
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

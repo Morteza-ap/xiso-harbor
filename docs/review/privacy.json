@@ -1,0 +1,13 @@
+{
+  "reviewDate": "2026-10-18",
+  "sourceSnapshot": "clean initial snapshot; prior Git history and tags were not imported",
+  "trackedSourceScan": "passed",
+  "packagedAppleSiliconAppScan": "passed",
+  "appSignatureVerification": "passed (ad-hoc; not notarized)",
+  "appExecutableSHA256": "f6c11f6472504ed4b5526f9a5930616b6673f2e11d2d17982bfdf72c1037087e",
+  "limitations": [
+    "Targeted privacy checks cannot prove that every possible personal detail or secret has been excluded.",
+    "Public repository ownership and account activity can identify the publisher.",
+    "The app is not security-certified and does not claim every hostile image is safe to extract."
+  ]
+}

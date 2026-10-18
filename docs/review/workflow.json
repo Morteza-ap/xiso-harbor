@@ -1,0 +1,62 @@
+{
+  "engine": "xdvdfs 0.8.3 + production Rust streaming backend",
+  "fixtures": "Synthetic and redistributable. No commercial game data.",
+  "results": [
+    {
+      "test": "raw",
+      "passed": true,
+      "files": 5,
+      "bytes": 4492,
+      "seconds": 0.33,
+      "verification": "SHA-256 of every output file matched independent fixture payload"
+    },
+    {
+      "test": "XGD1",
+      "passed": true,
+      "files": 5,
+      "bytes": 4492,
+      "seconds": 0.04,
+      "verification": "SHA-256 of every output file matched independent fixture payload"
+    },
+    {
+      "test": "XGD2",
+      "passed": true,
+      "files": 5,
+      "bytes": 4492,
+      "seconds": 0.04,
+      "verification": "SHA-256 of every output file matched independent fixture payload"
+    },
+    {
+      "test": "XGD3",
+      "passed": true,
+      "files": 5,
+      "bytes": 4492,
+      "seconds": 0.04,
+      "verification": "SHA-256 of every output file matched independent fixture payload"
+    },
+    {
+      "test": "many-files",
+      "passed": true,
+      "files": 10025,
+      "bytes": 133662,
+      "seconds": 49.73,
+      "verification": "SHA-256 of every output file matched independent fixture payload"
+    },
+    {
+      "test": "unsupported-image",
+      "passed": true
+    },
+    {
+      "test": "multi-gigabyte-streaming",
+      "passed": true,
+      "files": 6,
+      "bytes": 2151682461,
+      "seconds": 3.32,
+      "verification": "Every output SHA-256 matched, including the >2 GiB file"
+    },
+    {
+      "test": "cancellation-during-streaming",
+      "passed": true
+    }
+  ]
+}

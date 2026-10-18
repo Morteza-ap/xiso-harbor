@@ -1,0 +1,18 @@
+   Compiling xbox-iso-extractor v1.0.1 (<project>/src-tauri)
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> <project>/vendor/xdvdfs/src/layout.rs:293:24
+    |
+293 |     pub fn name_str<E>(&self) -> Result<alloc::borrow::Cow<str>, util::Error<E>> {
+    |                        ^^^^^            ----------------------- the same lifetime is hidden here
+    |                        |
+    |                        the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+293 |     pub fn name_str<E>(&self) -> Result<alloc::borrow::Cow<'_, str>, util::Error<E>> {
+    |                                                            +++
+
+warning: `xdvdfs` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.76s

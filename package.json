@@ -1,0 +1,29 @@
+{
+  "name": "xiso-harbor",
+  "private": true,
+  "version": "1.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "tauri": "tauri",
+    "desktop": "tauri dev",
+    "package": "node scripts/package.mjs",
+    "check:privacy": "python3 scripts/check-privacy.py",
+    "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check:format": "prettier --check src package.json tsconfig.json vite.config.ts src-tauri/tauri.conf.json"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2",
+    "vite": "7.3.7"
+  }
+}

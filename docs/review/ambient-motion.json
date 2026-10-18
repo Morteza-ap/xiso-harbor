@@ -1,0 +1,118 @@
+{
+  "date": "2026-10-17",
+  "method": "AmbientOcean effect extracted from current src/main.tsx, transpiled with TypeScript, and run in native WKWebView with a canvas; controlled window visibility and simulated media-query changes. Canvas alpha-pixel hashes and draw counts sampled before and after each check.",
+  "waveCycleSeconds": [
+    14.96,
+    23.27
+  ],
+  "checks": [
+    {
+      "after": {
+        "draws": 75,
+        "hash": 1790931536,
+        "visibility": "visible"
+      },
+      "before": {
+        "draws": 11,
+        "hash": 982862791,
+        "visibility": "visible"
+      },
+      "pass": true,
+      "seconds": 3,
+      "test": "foreground"
+    },
+    {
+      "after": {
+        "draws": 75,
+        "hash": 1790931536,
+        "visibility": "hidden"
+      },
+      "before": {
+        "draws": 75,
+        "hash": 1790931536,
+        "visibility": "hidden"
+      },
+      "pass": true,
+      "seconds": 1,
+      "test": "hidden"
+    },
+    {
+      "after": {
+        "draws": 148,
+        "hash": 1910227795,
+        "visibility": "visible"
+      },
+      "before": {
+        "draws": 85,
+        "hash": 704983054,
+        "visibility": "visible"
+      },
+      "pass": true,
+      "seconds": 3,
+      "test": "resume"
+    },
+    {
+      "after": {
+        "draws": 149,
+        "hash": 2152985976,
+        "visibility": "visible"
+      },
+      "before": {
+        "draws": 149,
+        "hash": 2152985976,
+        "visibility": "visible"
+      },
+      "pass": true,
+      "seconds": 1,
+      "test": "reducedMotion"
+    },
+    {
+      "after": {
+        "draws": 181,
+        "hash": 1955782148,
+        "visibility": "visible"
+      },
+      "before": {
+        "draws": 160,
+        "hash": 4192571225,
+        "visibility": "visible"
+      },
+      "pass": true,
+      "seconds": 1,
+      "test": "motionRestored"
+    },
+    {
+      "after": {
+        "draws": 181,
+        "hash": 1955782148,
+        "visibility": "visible"
+      },
+      "before": {
+        "draws": 181,
+        "hash": 1955782148,
+        "visibility": "visible"
+      },
+      "pass": true,
+      "seconds": 1,
+      "test": "unmounted"
+    }
+  ],
+  "installedApp": {
+    "architecture": "arm64",
+    "signatureVerification": "codesign --verify --deep --strict: passed",
+    "executableSHA256": "ba09336cc095b76c4f9104f5e2bac86186a85978d37273249a93916ad1299126",
+    "matchesBuiltExecutable": true,
+    "frameComparison": {
+      "secondsBetweenCaptures": 9.04,
+      "region": "Lower background, excluding controls, title bar, and cursor",
+      "regionPixels": 159840,
+      "pixelsChangedByMoreThan3RGBLevels": 18733,
+      "meanChannelDifference": [
+        1.3207645145145146,
+        1.454298048048048,
+        1.2740678178178177
+      ],
+      "pass": true
+    }
+  }
+}

@@ -1,0 +1,70 @@
+   Compiling xbox-iso-extractor v1.0.1 (<project>/src-tauri)
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> <project>/vendor/xdvdfs/src/layout.rs:293:24
+    |
+293 |     pub fn name_str<E>(&self) -> Result<alloc::borrow::Cow<str>, util::Error<E>> {
+    |                        ^^^^^            ----------------------- the same lifetime is hidden here
+    |                        |
+    |                        the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+293 |     pub fn name_str<E>(&self) -> Result<alloc::borrow::Cow<'_, str>, util::Error<E>> {
+    |                                                            +++
+
+warning: `xdvdfs` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.77s
+     Running unittests src/main.rs (<target>/debug/deps/xbox_iso_extractor-5b44a58d6f73d472)
+
+running 22 tests
+test engine::tests::insufficient_space_preflight_creates_nothing ... ok
+test engine::tests::cleanup_refuses_an_unrelated_partial_directory_even_with_matching_identity ... ok
+test engine::tests::corrupted_directory_cycles_are_bounded ... ok
+test engine::tests::cyclic_child_pointers_are_rejected_before_large_allocations ... ok
+test engine::tests::directory_record_must_fit_inside_its_table ... ok
+test engine::tests::cancellation_leaves_only_managed_partial ... ok
+test engine::tests::rejects_a_named_pipe_without_waiting_for_a_writer ... ok
+test engine::tests::rejects_case_collisions_before_creating_output ... ok
+test engine::tests::refuses_cleanup_when_partial_is_replaced_by_symlink ... ok
+test engine::tests::native_roundtrip_and_case_insensitive_xex ... ok
+test engine::tests::preexisting_partial_files_are_never_overwritten ... ok
+test engine::tests::unicode_suggestions_fit_byte_limits_and_cannot_probe_parent_paths ... ok
+test engine::tests::never_overwrites_existing_destination_even_at_commit ... ok
+test engine::tests::retains_disc_names_and_finds_unique_suffix ... ok
+test engine::tests::refuses_to_commit_when_the_source_changes ... ok
+test engine::tests::rejects_truncated_and_invalid_images ... ok
+test storage::tests::only_one_instance_can_own_recovery_state ... ok
+test storage::tests::refuses_symlink_records_and_lock_files ... ok
+test engine::tests::symlink_ancestors_cannot_redirect_output_and_cleanup_preserves_the_target ... ok
+test storage::tests::atomic_record_roundtrip_and_oversized_record_rejection ... ok
+test engine::tests::rejects_traversal_and_unsafe_names ... ok
+test engine::tests::deterministic_metadata_mutations_do_not_panic ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running unittests examples/engine-check.rs (<target>/debug/examples/engine_check-724a8d514ac0aaa2)
+
+running 19 tests
+test engine::tests::insufficient_space_preflight_creates_nothing ... ok
+test engine::tests::cleanup_refuses_an_unrelated_partial_directory_even_with_matching_identity ... ok
+test engine::tests::corrupted_directory_cycles_are_bounded ... ok
+test engine::tests::directory_record_must_fit_inside_its_table ... ok
+test engine::tests::cyclic_child_pointers_are_rejected_before_large_allocations ... ok
+test engine::tests::cancellation_leaves_only_managed_partial ... ok
+test engine::tests::rejects_a_named_pipe_without_waiting_for_a_writer ... ok
+test engine::tests::refuses_cleanup_when_partial_is_replaced_by_symlink ... ok
+test engine::tests::native_roundtrip_and_case_insensitive_xex ... ok
+test engine::tests::rejects_case_collisions_before_creating_output ... ok
+test engine::tests::preexisting_partial_files_are_never_overwritten ... ok
+test engine::tests::refuses_to_commit_when_the_source_changes ... ok
+test engine::tests::retains_disc_names_and_finds_unique_suffix ... ok
+test engine::tests::never_overwrites_existing_destination_even_at_commit ... ok
+test engine::tests::unicode_suggestions_fit_byte_limits_and_cannot_probe_parent_paths ... ok
+test engine::tests::rejects_truncated_and_invalid_images ... ok
+test engine::tests::symlink_ancestors_cannot_redirect_output_and_cleanup_preserves_the_target ... ok
+test engine::tests::rejects_traversal_and_unsafe_names ... ok
+test engine::tests::deterministic_metadata_mutations_do_not_panic ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s

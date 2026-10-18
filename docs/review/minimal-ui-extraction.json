@@ -1,0 +1,33 @@
+{
+  "result": "PASS",
+  "files": 5,
+  "bytes": 4492,
+  "reference": "Previously verified independent synthetic fixture output",
+  "matches": [
+    {
+      "file": "Assets/caf\u00e9.txt",
+      "bytes": 38,
+      "sha256": "3ca04da0658c7dce38b7eef3edabddd78353afe986a51dfcab47134725375125"
+    },
+    {
+      "file": "Assets/sound file.bin",
+      "bytes": 4352,
+      "sha256": "4043ab3659cd61351795c186762a045221774893a97dcc74f6ba3deade65ac03"
+    },
+    {
+      "file": "DEFAULT.XEX",
+      "bytes": 58,
+      "sha256": "01890c89e541b5568d1c8261e90824dcfd6f90cb5f98dc412d7ae97cecbca1be"
+    },
+    {
+      "file": "README.txt",
+      "bytes": 44,
+      "sha256": "4403dd04412124922a2f48ff6456c57cb280b6ff67ac8b63760faf53a60d8f91"
+    },
+    {
+      "file": "empty.dat",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

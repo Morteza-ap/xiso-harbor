@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+.DS_Store
+*.iso
+*.xiso
+__pycache__/
+src-tauri/gen/
+.env
+.env.*
+!.env.example
