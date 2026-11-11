@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Sequential extraction queue
+
+- Select or drop multiple ISO/XISO images and extract them one by one with a single native worker.
+- Give each image its own folder, using numbered suffixes to preserve existing folders and handle matching disc names.
+- Show per-image status and Finder actions for completed folders.
+- Stop the queue on cancellation or error; resolve partial files and continue unfinished images without repeating completed work.
+- Keep the queue in memory only; existing interrupted-extraction recovery remains available after relaunch.
+- Remove local object/archive paths from macOS linker debug records in packaged apps, then restore and verify the existing ad-hoc signature.
+
 ## 1.0.2 — Experimental public download
 
 - Published a self-contained Apple Silicon `.app` in a ZIP; no developer tools are needed to run it.

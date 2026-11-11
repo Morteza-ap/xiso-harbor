@@ -37,10 +37,12 @@ Keep Gatekeeper enabled. If macOS reports malware or a damaged app, stop and rep
 
 ## How it works
 
-1. Choose one `.iso` or `.xiso` image with **Browse**, or drop it into the app.
-2. Choose a destination and review the suggested game-folder name.
-3. Select **Extract**. Progress reflects bytes written, and you can cancel.
-4. When verification finishes, select **Show in Finder**.
+1. Choose one or more `.iso` or `.xiso` images with **Browse**, or drop them into the app.
+2. Choose a destination. A single image allows a custom folder name; a queue uses each image's filename and adds numbered suffixes when needed.
+3. Select **Extract** or **Extract Queue**. Images are scanned and extracted sequentially, with only one extraction running at a time. Each gets its own folder.
+4. Follow each image's status in the queue. **Show in Finder** opens any completed output.
+
+**Stop Queue** cancels the current image and leaves later images untouched. Errors also stop the queue. Keep or delete any partial files, then select **Continue Queue** to retry unfinished images; completed outputs are preserved and skipped. Choosing new images replaces the current queue. The queue is held only for the current app session; after relaunch, partial-file recovery still works, but unfinished images must be selected again.
 
 Raw XISO and the XGD1, XGD2, and XGD3 layouts supported by the extraction library are recognized. Extract each disc of a multi-disc game into its own folder. Xiso Harbor does not repair images, merge discs, set up a console, or execute extracted files. Use images you trust and are authorized to access.
 
@@ -73,4 +75,4 @@ The native extractor uses [antangelo/xdvdfs](https://github.com/antangelo/xdvdfs
 
 ---
 
-<p align="center"><sub>One disc image. One folder. A little green nostalgia.</sub></p>
+<p align="center"><sub>One folder per disc. One disc at a time. A little green nostalgia.</sub></p>

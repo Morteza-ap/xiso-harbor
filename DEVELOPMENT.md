@@ -12,6 +12,8 @@ Safety bounds: 200,000 directory entries, 64 nested directory levels, 1,000,000 
 
 The custom command interface only exposes this utility's actions. Tauri's capability grants cover local events; there is no general filesystem or shell plugin. Native pickers choose paths; dropped ISO paths are validated. The app is not App-Sandbox-enabled and uses normal user permissions. A strict production CSP prevents remote scripts, frames, and network connections. No telemetry, updater, or online assets are configured. The only spawned runtime executable is the system `/usr/bin/open`, with a structured absolute path argument, to open Finder.
 
+Multi-image selection is preflighted sequentially. One native worker runs the entire extraction queue in order, rechecking each source immediately before extraction. Completed items are skipped when continuing a stopped queue; errors and cancellation stop before later items. Batch output names are chosen just before each extraction, so matching filenames get distinct suffixes. The queue and completed-item paths remain in memory for the current session only.
+
 A single worker owns the session, and a process lock prevents a second app instance from overwriting recovery state. A recovery record in the app's local Application Support directory stores the temporary folder's path, device, and inode. Cleanup checks that identity and never follows a replacement root symlink. An external process modifying app-owned temporary files during extraction is outside the normal trust model; do not edit them until work stops.
 
 ## Prerequisites for developers only
@@ -37,7 +39,7 @@ npm run package
 
 The `.app` is written to `src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Xiso Harbor.app`. Both dependency lockfiles are included. The vendored xdvdfs manifest is made standalone with explicit upstream metadata; its Rust implementation is unchanged. Local guarded directory traversal uses upstream record decoding and adds complete record bounds, cycle checks, and early entry limits.
 
-`npm run package` resolves local directories at build time and remaps Rust source paths to neutral `/build/` prefixes. It checks the finished bundle for common developer paths, local identity strings, credential markers, and image metadata. Use this command for distributable builds; a direct `tauri build` bypasses that wrapper. See [repository and build privacy](docs/PRIVACY.md) for scope and limitations.
+`npm run package` resolves local directories at build time and remaps Rust source paths to neutral `/build/` prefixes. It removes Apple linker debug-map entries from the final executable, restores the existing ad-hoc signature, verifies that signature, and checks the finished bundle for common developer paths, local identity strings, credential markers, and image metadata. Use this command for distributable builds; a direct `tauri build` bypasses that wrapper. See [repository and build privacy](docs/PRIVACY.md) for scope and limitations.
 
 `npm run desktop` starts a development window. `npm run dev` alone is only a browser view; native extraction controls are deliberately disabled there. Production bundles load embedded frontend assets and require no development server.
 

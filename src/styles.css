@@ -559,3 +559,32 @@ progress:indeterminate {
     transition: none !important;
   }
 }
+
+.disc-queue {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 210px;
+  overflow-y: auto;
+}
+.disc-queue li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(190, 238, 142, 0.12);
+}
+.disc-queue li[aria-current="step"] {
+  color: #d0f5aa;
+}
+.queue-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-status {
+  font-size: 12px;
+  text-transform: capitalize;
+}

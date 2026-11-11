@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod batch;
 mod engine;
 mod storage;
 use engine::{AppError, ExtractionResult, ImageInfo, Partial, Progress};
@@ -20,6 +21,7 @@ struct Snapshot {
     status: String,
     progress: Progress,
     image: Option<ImageInfo>,
+    queue: Vec<QueueItem>,
     destination: Option<String>,
     partial_path: Option<String>,
     result: Option<ExtractionResult>,
@@ -32,6 +34,7 @@ impl Default for Snapshot {
             status: "idle".into(),
             progress: Progress::default(),
             image: None,
+            queue: vec![],
             destination: None,
             partial_path: None,
             result: None,
@@ -40,10 +43,16 @@ impl Default for Snapshot {
         }
     }
 }
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct QueueItem {
+    image: ImageInfo,
+    status: String,
+    result: Option<ExtractionResult>,
+}
 struct Session {
     _instance_lock: fs::File,
     snapshot: Mutex<Snapshot>,
-    source: Mutex<Option<PathBuf>>,
     parent: Mutex<Option<PathBuf>>,
     partial: Mutex<Option<Partial>>,
     cancel: Arc<AtomicBool>,
@@ -100,31 +109,49 @@ fn get_state(state: State<'_, Arc<Session>>) -> Snapshot {
 async fn inspect(
     app: tauri::AppHandle,
     state: Arc<Session>,
-    path: PathBuf,
-) -> engine::Result<Option<ImageInfo>> {
+    paths: Vec<PathBuf>,
+) -> engine::Result<()> {
     state.acquire()?;
     state.update(&app, |s| {
         s.status = "validating".into();
         s.error = None;
         s.image = None;
         s.result = None;
+        s.queue.clear();
+        s.progress = Progress::default();
     });
-    *state.source.lock().unwrap() = None;
     let worker = state.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
-        engine::scan(&path, worker.cancel.clone()).map(|p| p.info)
+        if paths.is_empty() {
+            return Err(AppError::invalid("Choose at least one ISO."));
+        }
+        let mut images = Vec::new();
+        for path in paths {
+            let info = engine::scan(&path, worker.cancel.clone())?.info;
+            if !images.iter().any(|i: &ImageInfo| i.path == info.path) {
+                images.push(info);
+            }
+        }
+        Ok(images)
     })
     .await
     .unwrap_or_else(|e| Err(AppError::invalid(format!("Native validation worker: {e}"))));
     match &result {
-        Ok(info) => {
-            *state.source.lock().unwrap() = Some(PathBuf::from(&info.path));
+        Ok(images) => {
             state.update(&app, |s| {
                 s.status = "ready".into();
-                s.image = Some(info.clone());
+                s.image = images.first().cloned();
+                s.queue = images
+                    .iter()
+                    .map(|image| QueueItem {
+                        image: image.clone(),
+                        status: "pending".into(),
+                        result: None,
+                    })
+                    .collect();
                 s.logs.push(format!(
-                    "Preflight passed: {} files; {} output bytes.",
-                    info.total_files, info.total_bytes
+                    "Preflight passed for {} disc image(s).",
+                    images.len()
                 ));
             });
         }
@@ -140,13 +167,10 @@ async fn inspect(
         }),
     }
     state.busy.store(false, Ordering::SeqCst);
-    result.map(Some)
+    result.map(|_| ())
 }
 #[tauri::command]
-async fn choose_iso(
-    app: tauri::AppHandle,
-    state: State<'_, Arc<Session>>,
-) -> engine::Result<Option<ImageInfo>> {
+async fn choose_iso(app: tauri::AppHandle, state: State<'_, Arc<Session>>) -> engine::Result<()> {
     if state.busy.load(Ordering::SeqCst) || state.partial.lock().unwrap().is_some() {
         return Err(AppError::new(
             "busy",
@@ -158,23 +182,28 @@ async fn choose_iso(
     let window = app
         .get_webview_window("main")
         .ok_or_else(|| AppError::invalid("The main application window is unavailable."))?;
-    let Some(file) = rfd::AsyncFileDialog::new()
+    let Some(files) = rfd::AsyncFileDialog::new()
         .set_parent(&window)
-        .set_title("Choose an Xbox disc image")
+        .set_title("Choose Xbox disc images")
         .add_filter("Xbox disc images", &["iso", "xiso"])
-        .pick_file()
+        .pick_files()
         .await
     else {
-        return Ok(None);
+        return Ok(());
     };
-    inspect(app, state.inner().clone(), file.path().to_path_buf()).await
+    inspect(
+        app,
+        state.inner().clone(),
+        files.iter().map(|f| f.path().to_path_buf()).collect(),
+    )
+    .await
 }
 #[tauri::command]
 async fn inspect_drop(
     app: tauri::AppHandle,
     state: State<'_, Arc<Session>>,
-    path: String,
-) -> engine::Result<Option<ImageInfo>> {
+    paths: Vec<String>,
+) -> engine::Result<()> {
     if state.partial.lock().unwrap().is_some() {
         return Err(AppError::new(
             "partial",
@@ -183,7 +212,12 @@ async fn inspect_drop(
             "Partial output is pending.",
         ));
     }
-    inspect(app, state.inner().clone(), PathBuf::from(path)).await
+    inspect(
+        app,
+        state.inner().clone(),
+        paths.into_iter().map(PathBuf::from).collect(),
+    )
+    .await
 }
 #[tauri::command]
 async fn choose_folder(
@@ -244,12 +278,10 @@ fn start_extraction(
             "Pending partial output.",
         ));
     }
-    let source = state
-        .source
-        .lock()
-        .unwrap()
-        .clone()
-        .ok_or_else(|| AppError::invalid("Choose an ISO first."))?;
+    let queue = state.snapshot.lock().unwrap().queue.clone();
+    if queue.is_empty() {
+        return Err(AppError::invalid("Choose an ISO first."));
+    }
     let parent = state.parent.lock().unwrap().clone().ok_or_else(|| {
         AppError::new(
             "destination",
@@ -270,51 +302,110 @@ fn start_extraction(
     });
     let state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        // A panic is a failure, never a success; retain the recovery record.
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
-            || -> engine::Result<ExtractionResult> {
-                let plan = engine::scan(&source, state.cancel.clone())?;
-                let (partial, final_path) =
-                    engine::prepare(&parent, &name, plan.info.total_bytes, plan.info.total_files)?;
-                if let Err(error) = state.save_partial(&partial) {
-                    let _ = partial.delete();
-                    return Err(error);
-                }
-                state.update(&app, |s| {
-                    s.status = "extracting".into();
-                    s.partial_path = Some(partial.path.to_string_lossy().into());
-                    s.logs
-                        .push("Native streaming extraction started. Copy buffer: 1 MiB.".into());
-                });
-                let result = engine::extract(plan, &partial, &final_path, &state.cancel, |p| {
-                    state.update(&app, |s| s.progress = p)
-                });
-                if result.is_ok() {
-                    if let Err(error) = state.clear_partial() {
-                        *state.partial.lock().unwrap() = None;
-                        state.update(&app, |s| {
-                            s.logs.push(format!(
+        let pending: Vec<usize> = queue
+            .iter()
+            .enumerate()
+            .filter(|(_, item)| item.result.is_none())
+            .map(|(i, _)| i)
+            .collect();
+        let outcome = batch::run(pending, &state.cancel, |index| {
+            let item = &queue[index];
+            state.update(&app, |s| {
+                s.image = Some(item.image.clone());
+                s.result = None;
+                s.progress = Progress::default();
+                s.status = "validating".into();
+                s.queue[index].status = "extracting".into();
+            });
+            // A panic is a failure, never a success; retain the recovery record.
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
+                || -> engine::Result<ExtractionResult> {
+                    let plan = engine::scan(Path::new(&item.image.path), state.cancel.clone())?;
+                    let folder_name = if queue.len() == 1 {
+                        name.clone()
+                    } else {
+                        engine::unique_name(&parent, &plan.info.suggested_name)
+                    };
+                    let (partial, final_path) = engine::prepare(
+                        &parent,
+                        &folder_name,
+                        plan.info.total_bytes,
+                        plan.info.total_files,
+                    )?;
+                    if let Err(error) = state.save_partial(&partial) {
+                        let _ = partial.delete();
+                        return Err(error);
+                    }
+                    state.update(&app, |s| {
+                        s.status = "extracting".into();
+                        s.partial_path = Some(partial.path.to_string_lossy().into());
+                        s.logs.push(
+                            "Native streaming extraction started. Copy buffer: 1 MiB.".into(),
+                        );
+                    });
+                    let result = engine::extract(plan, &partial, &final_path, &state.cancel, |p| {
+                        state.update(&app, |s| s.progress = p)
+                    });
+                    if result.is_ok() {
+                        if let Err(error) = state.clear_partial() {
+                            *state.partial.lock().unwrap() = None;
+                            state.update(&app, |s| {
+                                s.logs.push(format!(
                                 "Output committed; stale recovery record could not be removed: {}",
                                 error.detail
                             ))
-                        });
+                            });
+                        }
                     }
-                }
-                result
-            },
-        ))
-        .unwrap_or_else(|_| {
-            Err(AppError::new(
-                "internal",
-                "The extraction worker stopped unexpectedly.",
-                "Keep or delete the partial files, then try another image.",
-                "Native worker panicked; no success was reported.",
+                    result
+                },
             ))
+            .unwrap_or_else(|_| {
+                Err(AppError::new(
+                    "internal",
+                    "The extraction worker stopped unexpectedly.",
+                    "Keep or delete the partial files, then try another image.",
+                    "Native worker panicked; no success was reported.",
+                ))
+            });
+            match result {
+                Ok(result) => {
+                    state.update(&app, |s| {
+                    s.partial_path = None;
+                    s.logs.push(format!("Verified {} files and {} bytes. Final directory committed without replacement.", result.files, result.bytes));
+                    s.queue[index].status = "completed".into();
+                    s.queue[index].result = Some(result.clone());
+                    s.result = Some(result);
+                });
+                    Ok(())
+                }
+                Err(error) => {
+                    state.update(&app, |s| {
+                        s.queue[index].status = if error.category == "cancelled" {
+                            "cancelled"
+                        } else {
+                            "failed"
+                        }
+                        .into()
+                    });
+                    Err(error)
+                }
+            }
         });
         *state.started.lock().unwrap() = None;
-        state.update(&app, |s| match result {
-            Ok(result) => {s.status = "completed".into(); s.partial_path = None; s.logs.push(format!("Verified {} files and {} bytes. Final directory committed without replacement.", result.files, result.bytes)); s.result = Some(result);},
-            Err(error) => {s.status = if error.category == "cancelled" {"cancelled"} else {"failed"}.into(); s.logs.push(error.detail.clone()); s.error = Some(error);},
+        state.update(&app, |s| match outcome {
+            Ok(()) => s.status = "completed".into(),
+            Err(error) => {
+                s.status = if error.category == "cancelled" {
+                    "cancelled"
+                } else {
+                    "failed"
+                }
+                .into();
+                s.logs.push(error.detail.clone());
+                s.error = Some(error);
+                s.result = None;
+            }
         });
         state.busy.store(false, Ordering::SeqCst);
     });
@@ -366,15 +457,17 @@ async fn resolve_partial(
     .unwrap_or_else(|e| Err(AppError::invalid(e)))
 }
 #[tauri::command]
-fn open_output(state: State<'_, Arc<Session>>) -> engine::Result<()> {
+fn open_output(state: State<'_, Arc<Session>>, index: Option<usize>) -> engine::Result<()> {
     let s = state.snapshot.lock().unwrap();
-    let path = s
-        .result
-        .as_ref()
+    let result = match index {
+        Some(index) => s.queue.get(index).and_then(|item| item.result.as_ref()),
+        None => s.result.as_ref(),
+    };
+    let path = result
         .map(|r| r.path.as_str())
         .or(s.partial_path.as_deref())
         .ok_or_else(|| AppError::invalid("No output folder is available."))?;
-    if s.result.is_none() {
+    if result.is_none() {
         let partial = state
             .partial
             .lock()
@@ -419,7 +512,6 @@ fn reset(app: tauri::AppHandle, state: State<'_, Arc<Session>>) -> engine::Resul
             "Reset refused.",
         ));
     }
-    *state.source.lock().unwrap() = None;
     state.update(&app, |s| {
         let destination = s.destination.clone();
         *s = Snapshot::default();
@@ -459,6 +551,12 @@ fn copy_diagnostics(state: State<'_, Arc<Session>>, error: Option<AppError>) -> 
     }
     if let Some(result) = &snapshot.result {
         paths.push(result.path.clone());
+    }
+    for item in &snapshot.queue {
+        paths.push(item.image.path.clone());
+        if let Some(result) = &item.result {
+            paths.push(result.path.clone());
+        }
     }
     paths.sort_by_key(|p| std::cmp::Reverse(p.len()));
     for path in paths {
@@ -518,7 +616,6 @@ fn main() {
             app.manage(Arc::new(Session {
                 _instance_lock: instance_lock,
                 snapshot: Mutex::new(snapshot),
-                source: Mutex::new(None),
                 parent: Mutex::new(None),
                 partial: Mutex::new(partial),
                 cancel: Arc::new(AtomicBool::new(false)),

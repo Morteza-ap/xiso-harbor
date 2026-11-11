@@ -43,8 +43,24 @@ run("npm", [
   "--bundles",
   "app",
 ]);
-run("python3", [
-  "scripts/check-privacy.py",
-  "--artifact",
-  resolve(target, "aarch64-apple-darwin/release/bundle/macos/Xiso Harbor.app"),
+const app = resolve(
+  target,
+  "aarch64-apple-darwin/release/bundle/macos/Xiso Harbor.app",
+);
+const executable = resolve(app, "Contents/MacOS/xbox-iso-extractor");
+// Apple linker debug-map entries contain object/archive paths even when Rust
+// source paths are remapped. Strip only the finished executable's debug data;
+// Cargo-wide stripping would also touch build-time proc-macro dylibs.
+run("/usr/bin/strip", ["-S", executable]);
+// Stripping changes the executable, so restore the existing ad-hoc signature
+// on the inner binary and then the bundle, without a developer identity.
+run("/usr/bin/codesign", [
+  "--force",
+  "--sign",
+  "-",
+  "--timestamp=none",
+  executable,
 ]);
+run("/usr/bin/codesign", ["--force", "--sign", "-", "--timestamp=none", app]);
+run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app]);
+run("python3", ["scripts/check-privacy.py", "--artifact", app]);

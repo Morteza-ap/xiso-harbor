@@ -28,7 +28,18 @@ type Progress = {
   currentFile: string;
   elapsedSeconds: number;
 };
+type QueueItem = {
+  image: ImageInfo;
+  status: string;
+  result: {
+    path: string;
+    bytes: number;
+    files: number;
+    hasXex: boolean;
+  } | null;
+};
 type Snapshot = {
+  queue: QueueItem[];
   status:
     | "idle"
     | "validating"
@@ -51,6 +62,7 @@ type Snapshot = {
   logs: string[];
 };
 const empty: Snapshot = {
+  queue: [],
   status: "idle",
   image: null,
   destination: null,
@@ -326,6 +338,8 @@ function App() {
   const busy =
     pending || s.status === "validating" || s.status === "extracting";
   const locked = busy || !!s.partialPath;
+  const multiple = s.queue.length > 1;
+  const completed = s.queue.filter((item) => item.result).length;
   const error = localError ?? s.error;
   const percent = s.progress.totalBytes
     ? Math.floor((100 * s.progress.bytesDone) / s.progress.totalBytes)
@@ -425,12 +439,8 @@ function App() {
           !["validating", "extracting"].includes(stateRef.current.status) &&
           !stateRef.current.partialPath
         ) {
-          if (e.payload.paths.length !== 1) {
-            setNotice("Drop one ISO at a time. Extract each disc separately.");
-            return;
-          }
           setPending(true);
-          await call("inspect_drop", { path: e.payload.paths[0] });
+          await call("inspect_drop", { paths: e.payload.paths });
           setPending(false);
         }
       });
@@ -491,6 +501,46 @@ function App() {
             files and extract images.
           </div>
         )}
+        {s.queue.length > 0 && (
+          <section className="card queue-card" aria-label="Disc queue">
+            <div className="section-label">
+              <h2>Disc queue</h2>
+              <span className="section-hint">
+                {completed} / {s.queue.length} complete
+              </span>
+            </div>
+            <p className="hint">
+              Images extract one by one, each into its own folder.
+            </p>
+            <ol className="disc-queue">
+              {s.queue.map((item, index) => (
+                <li
+                  key={item.image.path}
+                  aria-current={
+                    busy && s.image?.path === item.image.path
+                      ? "step"
+                      : undefined
+                  }
+                >
+                  <span className="queue-name" title={item.image.path}>
+                    {item.image.name}
+                  </span>
+                  {item.result ? (
+                    <button
+                      className="secondary"
+                      onClick={() => call("open_output", { index })}
+                      aria-label={`Show ${item.image.name} in Finder`}
+                    >
+                      Show in Finder
+                    </button>
+                  ) : (
+                    <span className="queue-status">{item.status}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         {s.status !== "completed" && (
           <>
             <section
@@ -522,18 +572,18 @@ function App() {
                     {s.image?.name ??
                       (s.status === "validating"
                         ? "Checking your image…"
-                        : "Drop an ISO")}
+                        : "Drop ISO files")}
                   </h3>
                   <p>
                     {s.image
                       ? `${s.image.totalFiles.toLocaleString()} files · ${bytes(s.image.totalBytes)}`
-                      : "ISO / XISO"}
+                      : "Choose one or more ISO / XISO images"}
                   </p>
                 </div>
                 <button
                   className="secondary disc-button"
                   aria-label={
-                    s.image ? "Change disc image" : "Choose disc image"
+                    s.image ? "Change disc images" : "Choose disc images"
                   }
                   onClick={chooseIso}
                   disabled={locked || !native}
@@ -575,18 +625,27 @@ function App() {
                   Browse
                 </button>
               </div>
-              <label className="field-label" htmlFor="subfolder">
-                Folder name
-              </label>
-              <input
-                id="subfolder"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={locked}
-                placeholder="From disc name"
-                autoComplete="off"
-                spellCheck={false}
-              />
+              {multiple ? (
+                <p className="hint">
+                  Folder names come from each ISO. Existing folders are
+                  preserved by adding a numbered suffix.
+                </p>
+              ) : (
+                <>
+                  <label className="field-label" htmlFor="subfolder">
+                    Folder name
+                  </label>
+                  <input
+                    id="subfolder"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={locked}
+                    placeholder="From disc name"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </>
+              )}
             </section>
           </>
         )}
@@ -599,10 +658,12 @@ function App() {
               <div className="result-icon">
                 <Icon name="check" size={36} />
               </div>
-              <h2>Extraction complete</h2>
+              <h2>{multiple ? "Queue complete" : "Extraction complete"}</h2>
               <p>
+                {multiple ? `${completed} images · ` : ""}
                 {s.result.files.toLocaleString()} files ·{" "}
                 {bytes(s.result.bytes)} extracted
+                {multiple ? " in the last image" : ""}
               </p>
               <div className="result-path">{s.result.path}</div>
               <p className="xex-status">
@@ -626,6 +687,8 @@ function App() {
                 <div>
                   <h2>
                     {s.status === "extracting" ? "Extracting…" : "Checking…"}
+                    {multiple &&
+                      ` (${Math.min(completed + 1, s.queue.length)} of ${s.queue.length})`}
                   </h2>
                 </div>
                 <span className="time">
@@ -664,7 +727,11 @@ function App() {
                   await call("cancel_extraction");
                 }}
               >
-                {cancelling ? "Stopping safely…" : "Cancel Extraction"}
+                {cancelling
+                  ? "Stopping safely…"
+                  : multiple
+                    ? "Stop Queue"
+                    : "Cancel Extraction"}
               </button>
             </>
           ) : (
@@ -687,11 +754,15 @@ function App() {
                   !native ||
                   !s.image ||
                   !s.destination ||
-                  !name.trim() ||
+                  (!multiple && !name.trim()) ||
                   !!s.partialPath
                 }
               >
-                Extract
+                {multiple
+                  ? completed
+                    ? "Continue Queue"
+                    : "Extract Queue"
+                  : "Extract"}
                 <Icon name="arrow" size={18} />
               </button>
             </div>
