@@ -1,12 +1,15 @@
 # Changelog
 
-## Unreleased — Sequential extraction queue
+## 1.1.0 — More ways to prepare a game
 
+- Add experimental Games on Demand output for supported single-disc Xbox 360 images while preserving the existing extracted-folder workflow.
+- Add a clear output-format switch, mode-specific visual themes, a compact help sheet, and refinements to the editorial interface.
 - Select or drop multiple ISO/XISO images and extract them one by one with a single native worker.
 - Give each image its own folder, using numbered suffixes to preserve existing folders and handle matching disc names.
 - Show per-image status and Finder actions for completed folders.
 - Stop the queue on cancellation or error; resolve partial files and continue unfinished images without repeating completed work.
 - Keep the queue in memory only; existing interrupted-extraction recovery remains available after relaunch.
+- Vendor the pinned GOD format code and required notices; package the GOD workflow without adding runtime network or shell-helper permissions.
 - Remove local object/archive paths from macOS linker debug records in packaged apps, then restore and verify the existing ad-hoc signature.
 
 ## 1.0.2 — Experimental public download

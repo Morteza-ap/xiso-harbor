@@ -1510,6 +1510,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "harbor-god-format"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "sha1",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3320,6 +3329,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha1"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5001,14 +5021,16 @@ dependencies = [
 
 [[package]]
 name = "xbox-iso-extractor"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
+ "harbor-god-format",
  "libc",
  "objc2-app-kit",
  "objc2-foundation",
  "rfd",
  "serde",
  "serde_json",
+ "sha1",
  "tauri",
  "tauri-build",
  "tempfile",

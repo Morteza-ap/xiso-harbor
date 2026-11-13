@@ -4,6 +4,8 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const preview = process.argv.includes("--preview");
+const productName = preview ? "Xiso Harbor GOD Preview" : "Xiso Harbor";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const env = { ...process.env };
 const target = resolve(root, env.CARGO_TARGET_DIR ?? "src-tauri/target");
@@ -42,10 +44,11 @@ run("npm", [
   "aarch64-apple-darwin",
   "--bundles",
   "app",
+  ...(preview ? ["--config", "src-tauri/tauri.preview.conf.json"] : []),
 ]);
 const app = resolve(
   target,
-  "aarch64-apple-darwin/release/bundle/macos/Xiso Harbor.app",
+  `aarch64-apple-darwin/release/bundle/macos/${productName}.app`,
 );
 const executable = resolve(app, "Contents/MacOS/xbox-iso-extractor");
 // Apple linker debug-map entries contain object/archive paths even when Rust

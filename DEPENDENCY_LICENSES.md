@@ -316,3 +316,17 @@ Exact downloaded dependencies for this Apple Silicon build. Cross-platform lockf
 | [zerovec](https://crates.io/crates/zerovec/0.11.8) | 0.11.8 | Unicode-3.0 | [files](licenses/rust-zerovec-0.11.8/) |
 | [zerovec-derive](https://crates.io/crates/zerovec-derive/0.11.6) | 0.11.6 | Unicode-3.0 | [files](licenses/rust-zerovec-derive-0.11.6/) |
 | [zlib-rs](https://crates.io/crates/zlib-rs/0.6.8) | 0.6.8 | Zlib | [files](licenses/rust-zlib-rs-0.6.8/) |
+
+Additional experimental GOD dependencies:
+
+| Package | Version | Declared license | Original notices |
+|---|---|---|---|
+| [iso2god-rs format subset](https://github.com/iliazeus/iso2god-rs) | commit 76207d7 | MIT | [files](licenses/iso2god-rs/) |
+| [sha1](https://crates.io/crates/sha1/0.10.6) | 0.10.6 | MIT OR Apache-2.0 | [files](licenses/rust-sha1-0.10.6/) |
+
+Hugeicons UI additions:
+
+| Package | Version | License | Notices |
+|---|---|---|---|
+| @hugeicons/react | 1.1.10 | MIT | [files](licenses/npm-hugeicons-react-1.1.10/) |
+| @hugeicons/core-free-icons | 4.4.0 | MIT | [files](licenses/npm-hugeicons-core-free-icons-4.4.0/) |

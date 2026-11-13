@@ -1,11 +1,11 @@
 <div align="center">
   <img src="src-tauri/icons/icon.png" width="88" height="88" alt="Xiso Harbor app icon">
   <h1>Xiso Harbor</h1>
-  <p><strong>Turn Xbox disc images into game folders, right on your Mac.</strong></p>
+  <p><strong>Prepare Xbox game images locally on your Mac.</strong></p>
   <p>Experimental &nbsp;·&nbsp; Apple Silicon &nbsp;·&nbsp; Offline &nbsp;·&nbsp; MIT</p>
   <p>
-    <a href="https://github.com/Morteza-ap/xiso-harbor/releases/download/v1.0.2/Xiso-Harbor-macOS-arm64.zip"><strong>Download for Mac ↓</strong></a>
-    &nbsp;·&nbsp; <a href="https://github.com/Morteza-ap/xiso-harbor/releases/tag/v1.0.2">Release notes</a>
+    <a href="https://github.com/Morteza-ap/xiso-harbor/releases/download/v1.1.0/Xiso-Harbor-macOS-arm64.zip"><strong>Download for Mac ↓</strong></a>
+    &nbsp;·&nbsp; <a href="https://github.com/Morteza-ap/xiso-harbor/releases/tag/v1.1.0">Release notes</a>
     &nbsp;·&nbsp; <a href="#first-launch">First launch</a>
     &nbsp;·&nbsp; <a href="DEVELOPMENT.md">Build from source</a>
   </p>
@@ -13,15 +13,11 @@
 
 ---
 
-Xiso Harbor reads compatible Xbox and Xbox 360 ISO/XISO images and extracts their files into a folder you choose. A small, focused experiment: a native extraction engine, a quiet green interface, and everything processed on your Mac.
-
-<p align="center">
-  <img src="docs/assets/app-window.png" width="780" alt="Xiso Harbor's green console-inspired interface with its wave background, disc selector, and destination controls">
-</p>
+Xiso Harbor turns compatible Xbox and Xbox 360 ISO/XISO images into extracted game folders, or into experimental GOD packages for supported single-disc Xbox 360 games. It keeps the workflow native and offline, with a quiet interface that shifts with the selected output mode.
 
 ## Download and install
 
-1. [Download the app ZIP](https://github.com/Morteza-ap/xiso-harbor/releases/download/v1.0.2/Xiso-Harbor-macOS-arm64.zip) from the **v1.0.2 experimental release**.
+1. [Download the app ZIP](https://github.com/Morteza-ap/xiso-harbor/releases/download/v1.1.0/Xiso-Harbor-macOS-arm64.zip) from the **v1.1.0 experimental release**.
 2. Double-click the ZIP to unpack **Xiso Harbor.app**.
 3. Drag the app to **Applications**, then open it from Finder, Launchpad, or Spotlight.
 
@@ -60,7 +56,7 @@ This is an independent, community experiment with best-effort support. It is not
 
 Synthetic tests cover supported image layouts, more than 10,000 files, a file larger than 2 GiB, cancellation, recovery, and malformed metadata. No commercial game images were used. Size/type checks cannot prove an image is authentic, complete, or harmless. The app is not macOS App Sandbox enabled or security-certified, and we cannot promise safe extraction of every hostile image.
 
-- [Release verification](docs/review/release-1.0.2.md)
+- [Release verification](docs/review/release-1.1.0.md)
 - [Quality and security review](docs/QUALITY-SECURITY-REVIEW.md)
 - [Security model and private vulnerability reporting](SECURITY.md)
 - [Development and reproducible builds](DEVELOPMENT.md)
@@ -76,3 +72,18 @@ The native extractor uses [antangelo/xdvdfs](https://github.com/antangelo/xdvdfs
 ---
 
 <p align="center"><sub>One folder per disc. One disc at a time. A little green nostalgia.</sub></p>
+
+## Experimental Games on Demand output
+
+In the v1.1.0 app, choose **Extracted files** for the existing folder workflow,
+or **Games on Demand (Experimental)** to create a dashboard content package for
+a supported single-disc Xbox 360 game. GOD requires a suitably modified console
+or an active exploit with the necessary runtime patches; conversion does not
+provide a retail license. Multi-disc and detected installation-content images
+are excluded. Console compatibility still needs testing with your own hardware.
+
+Output is created in a new folder containing the Xbox `Content` hierarchy. Harbor
+does not format drives, configure the console, or copy over an existing library.
+See [architecture, limits and the one-game test](docs/GOD-OUTPUT.md). Keep your
+existing game folders and test the new output with one game before adding it to
+your console drive.

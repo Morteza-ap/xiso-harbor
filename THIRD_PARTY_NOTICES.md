@@ -37,3 +37,17 @@ their respective open-source licenses. Exact versions are recorded in
 `package-lock.json` and `src-tauri/Cargo.lock`. See `DEPENDENCY_LICENSES.md`
 and `licenses/` for the dependency notices shipped with this source release.
 System frameworks (AppKit, WebKit) are provided by macOS.
+
+## iso2god-rs GOD format subset (experimental)
+
+`vendor/iso2god` contains the GOD format modules and execution-metadata structure
+from [iliazeus/iso2god-rs](https://github.com/iliazeus/iso2god-rs), pinned to commit
+`76207d7d7f89f551c7a5769560c0073e9ffe50e9` (upstream package 1.8.0).
+Copyright (c) 2023 Ilia Pozdnyakov. MIT license; the complete notice is preserved
+in `licenses/iso2god-rs/LICENSE` and `vendor/iso2god/LICENSE`.
+
+Harbor uses its own validated image reader and conversion orchestration. The
+upstream CLI, recursive ISO parser, title database and network-dependent developer
+tools are not included. The bundled `empty_live.bin` is upstream's package-header
+template; this prototype does not create a Microsoft-issued content signature or
+license. New registry dependency: `sha1` 0.10.6 (MIT OR Apache-2.0).

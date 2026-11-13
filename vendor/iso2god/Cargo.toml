@@ -1,0 +1,9 @@
+[package]
+name = "harbor-god-format"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+[dependencies]
+anyhow = "=1.0.104"
+byteorder = "=1.5.0"
+sha1 = "=0.10.6"

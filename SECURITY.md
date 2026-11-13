@@ -32,3 +32,17 @@ An image can be readable and structurally valid while containing damaged or unwa
 The build is ad-hoc signed and not Apple-notarized. Code signing verification checks bundle integrity; it does not establish an Apple-verified publisher identity.
 
 See [the quality and security review](docs/QUALITY-SECURITY-REVIEW.md) for concrete findings, dependency warnings, tests, and remaining gaps. Dependency advisories can change after a scan.
+
+## Experimental GOD source build
+
+The additive GOD backend uses the existing bounded XDVDFS scan and a bounded XEX
+metadata reader. It does not run the upstream CLI or its recursive ISO parser.
+Conversion writes only in a fresh app-managed partial folder, never merges into
+an existing Content directory, checks cancellation on source reads, verifies data
+and hash chains by readback, and commits with exclusive rename. Source size and
+modification time are checked before commit. These checks detect ordinary source
+changes, not adversarial tampering that preserves metadata. The original threat
+model and same-user filesystem race limitations still apply.
+
+GOD output does not supply a Microsoft-issued license or prove console
+compatibility. See [GOD limitations and testing](docs/GOD-OUTPUT.md).

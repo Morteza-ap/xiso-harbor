@@ -1,9 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "./styles.css";
+import "./workflow.css";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  FolderOpenIcon,
+  FileDownloadIcon,
+  InformationCircleIcon,
+  Cancel01Icon,
+  CdIcon,
+} from "@hugeicons/core-free-icons";
 
 type AppError = {
   category: string;
@@ -38,7 +47,9 @@ type QueueItem = {
     hasXex: boolean;
   } | null;
 };
+type OutputFormat = "folder" | "god";
 type Snapshot = {
+  outputFormat: OutputFormat;
   queue: QueueItem[];
   status:
     | "idle"
@@ -62,6 +73,7 @@ type Snapshot = {
   logs: string[];
 };
 const empty: Snapshot = {
+  outputFormat: "folder",
   queue: [],
   status: "idle",
   image: null,
@@ -326,7 +338,66 @@ function AmbientOcean() {
   );
 }
 function App() {
+  const detailsRef = useRef<HTMLDialogElement>(null);
+  function openDetails() {
+    const dialog = detailsRef.current;
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+    dialog
+      .querySelector<HTMLElement>("#sheet-title")
+      ?.focus({ preventScroll: true });
+  }
+  function closeDetails() {
+    const dialog = detailsRef.current;
+    if (!dialog?.open) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      dialog.close();
+      return;
+    }
+    const animation = dialog.animate(
+      [
+        { transform: "translateX(0)", opacity: 1 },
+        { transform: "translateX(24px)", opacity: 0 },
+      ],
+      { duration: 160, easing: "ease-out" },
+    );
+    animation.onfinish = () => dialog.close();
+  }
   const [s, setS] = useState<Snapshot>(empty);
+  const [format, setFormat] = useState<OutputFormat>("folder");
+  const surfaceRef = useRef<HTMLElement>(null);
+  const firstMode = useRef(true);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.format = format;
+    if (firstMode.current) {
+      firstMode.current = false;
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const animations: Animation[] = [];
+    surfaceRef.current
+      ?.querySelectorAll(".mode-title, .mode-route")
+      .forEach((element, index) => {
+        animations.push(
+          element.animate(
+            [
+              {
+                opacity: 0,
+                transform: "translateY(10px)",
+              },
+              { opacity: 1, transform: "translateY(0)" },
+            ],
+            {
+              duration: 440,
+              delay: index * 35,
+              easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+              fill: "backwards",
+            },
+          ),
+        );
+      });
+    return () => animations.forEach((animation) => animation.cancel());
+  }, [format]);
   const [name, setName] = useState("");
   const [localError, setLocalError] = useState<AppError | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -339,7 +410,12 @@ function App() {
     pending || s.status === "validating" || s.status === "extracting";
   const locked = busy || !!s.partialPath;
   const multiple = s.queue.length > 1;
-  const completed = s.queue.filter((item) => item.result).length;
+  const completed =
+    s.outputFormat === format
+      ? s.queue.filter((item) => item.result).length
+      : 0;
+  const selectionLocked =
+    locked || s.queue.some((item) => item.result !== null);
   const error = localError ?? s.error;
   const percent = s.progress.totalBytes
     ? Math.floor((100 * s.progress.bytesDone) / s.progress.totalBytes)
@@ -368,9 +444,19 @@ function App() {
     }
   }
   async function chooseIso() {
-    if (locked) return;
+    if (selectionLocked) return;
     setPending(true);
-    await call("choose_iso");
+    await call("choose_iso", { append: s.queue.length > 0 });
+    setPending(false);
+  }
+  async function removeImage(index: number) {
+    if (selectionLocked) return;
+    const paths = s.queue
+      .filter((_, i) => i !== index)
+      .map((item) => item.image.path);
+    setPending(true);
+    if (paths.length) await call("inspect_drop", { paths });
+    else await call("reset");
     setPending(false);
   }
   async function chooseFolder() {
@@ -385,7 +471,7 @@ function App() {
   async function start() {
     setPending(true);
     setCancelling(false);
-    await call("start_extraction", { name: name.trim() });
+    await call("start_extraction", { name: name.trim(), format });
     setPending(false);
   }
   async function resolve(deleteFiles: boolean) {
@@ -396,7 +482,7 @@ function App() {
   async function copyDetails() {
     // Full host paths and absolute destination names are intentionally excluded.
     const report = [
-      "Xiso Harbor 1.0.2 / xdvdfs 0.8.3 / arm64",
+      "Xiso Harbor 1.1.0 / xdvdfs 0.8.3 / arm64",
       `State: ${s.status}`,
       `Category: ${error?.category ?? "none"}`,
       error?.message ?? "",
@@ -437,10 +523,16 @@ function App() {
         if (
           e.payload.type === "drop" &&
           !["validating", "extracting"].includes(stateRef.current.status) &&
-          !stateRef.current.partialPath
+          !stateRef.current.partialPath &&
+          !stateRef.current.queue.some((item) => item.result)
         ) {
           setPending(true);
-          await call("inspect_drop", { paths: e.payload.paths });
+          await call("inspect_drop", {
+            paths: [
+              ...stateRef.current.queue.map((item) => item.image.path),
+              ...e.payload.paths,
+            ],
+          });
           setPending(false);
         }
       });
@@ -488,165 +580,299 @@ function App() {
         <div className="app-icon">
           <Icon name="disc" size={29} />
         </div>
-        <h1>Xiso Harbor</h1>
-        <span className="local-badge" title="Files stay on this Mac">
-          <Icon name="lock" size={13} />
-          Local
-        </span>
+        <h1>
+          Xiso Harbor
+          <span className="wordmark-caption">Extract your Xbox games</span>
+        </h1>
+        <button
+          className="details-trigger"
+          onClick={openDetails}
+          aria-label="Open details"
+          aria-haspopup="dialog"
+        >
+          <HugeiconsIcon
+            icon={InformationCircleIcon}
+            size={18}
+            aria-hidden="true"
+          />
+          Help &amp; details
+        </button>
       </header>
-      <main className={busy ? "is-working" : undefined}>
+      <main
+        ref={surfaceRef}
+        className={`${busy ? "is-working" : ""} ${s.status === "completed" ? "is-complete" : ""}`}
+      >
         {!native && (
           <div className="alert" role="alert">
             This is the browser view. Open the installed macOS app to choose
             files and extract images.
           </div>
         )}
-        {s.queue.length > 0 && (
-          <section className="card queue-card" aria-label="Disc queue">
+        {s.status !== "completed" && (
+          <section className="card format-card" aria-label="Output format">
             <div className="section-label">
-              <h2>Disc queue</h2>
-              <span className="section-hint">
-                {completed} / {s.queue.length} complete
-              </span>
+              <span className="step">01</span>
+              <h2>Output format</h2>
             </div>
-            <p className="hint">
-              Images extract one by one, each into its own folder.
-            </p>
-            <ol className="disc-queue">
-              {s.queue.map((item, index) => (
-                <li
-                  key={item.image.path}
-                  aria-current={
-                    busy && s.image?.path === item.image.path
-                      ? "step"
-                      : undefined
-                  }
-                >
-                  <span className="queue-name" title={item.image.path}>
-                    {item.image.name}
-                  </span>
-                  {item.result ? (
-                    <button
-                      className="secondary"
-                      onClick={() => call("open_output", { index })}
-                      aria-label={`Show ${item.image.name} in Finder`}
-                    >
-                      Show in Finder
-                    </button>
-                  ) : (
-                    <span className="queue-status">{item.status}</span>
-                  )}
-                </li>
-              ))}
-            </ol>
+            <div className="mode-heading">
+              <div className="mode-heading-copy">
+                <h2 className="mode-title">
+                  {format === "folder" ? "Extracted files" : "On demand"}
+                  <span>.</span>
+                </h2>
+                <p className="mode-route">
+                  {format === "folder"
+                    ? "ISO → Extracted files"
+                    : "ISO → GOD package"}
+                </p>
+              </div>
+              <div className="disc-motif" aria-hidden="true">
+                <div className="disc-engraving">
+                  <span className="disc-groove" />
+                  <span className="disc-hub" />
+                </div>
+              </div>
+            </div>
+            <fieldset className="format-options" disabled={locked}>
+              <legend className="sr-only">Choose output format</legend>
+              <label className={format === "folder" ? "selected" : ""}>
+                <input
+                  type="radio"
+                  name="format"
+                  value="folder"
+                  checked={format === "folder"}
+                  onChange={() => setFormat("folder")}
+                />
+                <span className="format-name">
+                  Extracted files{" "}
+                  <small>For Aurora &amp; other launchers</small>
+                </span>
+              </label>
+              <label className={format === "god" ? "selected" : ""}>
+                <input
+                  type="radio"
+                  name="format"
+                  value="god"
+                  checked={format === "god"}
+                  onChange={() => setFormat("god")}
+                />
+                <span className="format-name">
+                  Games on Demand <small>For the Xbox dashboard</small>
+                </span>
+              </label>
+            </fieldset>
           </section>
         )}
-        {s.status !== "completed" && (
+        {(s.status !== "completed" || s.queue.length > 0) && (
           <>
             <section
-              className="card input-card"
-              aria-labelledby="image-heading"
+              className="card games-region"
+              aria-labelledby="games-heading"
             >
               <div className="section-label">
-                <span className="step" aria-hidden="true">
-                  01
+                <span className="step">02</span>
+                <h2 id="games-heading">Games</h2>
+                <span className="section-hint">
+                  {format === "god"
+                    ? "Xbox 360 · single-disc"
+                    : "Xbox / Xbox 360"}
                 </span>
-                <h2 id="image-heading">Disc</h2>
-                {s.image ? (
-                  <span className="valid-badge">
-                    <Icon name="check" size={14} />
-                    Ready
-                  </span>
-                ) : (
-                  <span className="section-hint">Xbox / Xbox 360</span>
-                )}
               </div>
-              <div
-                className={`drop-zone ${dragging && !locked ? "dragging" : ""} ${s.image ? "has-image" : ""}`}
-              >
-                <div className="drop-icon">
-                  <Icon name="disc" size={62} />
-                </div>
-                <div className="drop-description">
-                  <h3 title={s.image?.path}>
-                    {s.image?.name ??
-                      (s.status === "validating"
-                        ? "Checking your image…"
-                        : "Drop ISO files")}
-                  </h3>
-                  <p>
-                    {s.image
-                      ? `${s.image.totalFiles.toLocaleString()} files · ${bytes(s.image.totalBytes)}`
-                      : "Choose one or more ISO / XISO images"}
-                  </p>
-                </div>
-                <button
-                  className="secondary disc-button"
-                  aria-label={
-                    s.image ? "Change disc images" : "Choose disc images"
-                  }
-                  onClick={chooseIso}
-                  disabled={locked || !native}
+              {s.queue.length === 0 ? (
+                <div
+                  className={`drop-zone ${dragging && !locked ? "dragging" : ""}`}
                 >
-                  {s.image ? "Change" : "Browse"}
-                </button>
-              </div>
-            </section>
-            <section
-              className="card destination-card"
-              aria-labelledby="destination-heading"
-            >
-              <div className="section-label">
-                <span className="step" aria-hidden="true">
-                  02
-                </span>
-                <h2 id="destination-heading">Destination</h2>
-              </div>
-              <div className="folder-row">
-                <span className="folder-icon">
-                  <Icon name="folder" size={26} />
-                </span>
-                <div className="folder-info">
-                  <strong>
-                    {s.destination?.split("/").pop() || "Choose folder"}
-                  </strong>
-                  {s.destination && (
-                    <p className="path" title={s.destination}>
-                      {s.destination}
-                    </p>
-                  )}
+                  <div className="drop-icon">
+                    <HugeiconsIcon icon={CdIcon} size={36} aria-hidden="true" />
+                  </div>
+                  <div className="drop-description">
+                    <h3>
+                      {s.status === "validating"
+                        ? "Checking game images…"
+                        : "Drop your game images here"}
+                    </h3>
+                    <p>ISO or XISO · One game or a whole queue</p>
+                  </div>
+                  <button
+                    className="secondary"
+                    onClick={chooseIso}
+                    disabled={selectionLocked || !native}
+                  >
+                    <HugeiconsIcon icon={CdIcon} size={18} aria-hidden="true" />
+                    Browse games
+                  </button>
                 </div>
-                <button
-                  className="secondary"
-                  onClick={chooseFolder}
-                  aria-label="Choose destination folder"
-                  disabled={locked || !native}
-                >
-                  Browse
-                </button>
-              </div>
-              {multiple ? (
-                <p className="hint">
-                  Folder names come from each ISO. Existing folders are
-                  preserved by adding a numbered suffix.
-                </p>
               ) : (
                 <>
-                  <label className="field-label" htmlFor="subfolder">
-                    Folder name
-                  </label>
-                  <input
-                    id="subfolder"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={locked}
-                    placeholder="From disc name"
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
+                  <div className="games-toolbar">
+                    <span>
+                      {s.queue.length}{" "}
+                      {multiple ? "games selected" : "game selected"}
+                    </span>
+                    <button
+                      className="secondary"
+                      onClick={chooseIso}
+                      disabled={selectionLocked || !native}
+                    >
+                      <HugeiconsIcon
+                        icon={CdIcon}
+                        size={18}
+                        aria-hidden="true"
+                      />
+                      Add games
+                    </button>
+                  </div>
+                  <ol className="selected-games">
+                    {s.queue.map((item, index) => (
+                      <li
+                        key={item.image.path}
+                        aria-current={
+                          busy && s.image?.path === item.image.path
+                            ? "step"
+                            : undefined
+                        }
+                      >
+                        <HugeiconsIcon
+                          icon={CdIcon}
+                          size={24}
+                          aria-hidden="true"
+                        />
+                        <div className="selected-game-copy">
+                          <strong title={item.image.name}>
+                            {item.image.name}
+                          </strong>
+                          <span>
+                            {item.image.totalFiles.toLocaleString()} files ·{" "}
+                            {bytes(item.image.totalBytes)}
+                          </span>
+                        </div>
+                        <span className="game-state">
+                          {s.outputFormat === format && item.result
+                            ? "Completed"
+                            : busy && item.status === "extracting"
+                              ? "Processing"
+                              : item.status === "failed"
+                                ? "Needs attention"
+                                : "Image checked"}
+                        </span>
+                        {item.result && s.outputFormat === format ? (
+                          <button
+                            className="secondary"
+                            onClick={() => call("open_output", { index })}
+                          >
+                            Show in Finder
+                          </button>
+                        ) : (
+                          <button
+                            className="icon-button"
+                            disabled={selectionLocked}
+                            onClick={() => removeImage(index)}
+                            aria-label={`Remove ${item.image.name}`}
+                          >
+                            <HugeiconsIcon
+                              icon={Cancel01Icon}
+                              size={18}
+                              aria-hidden="true"
+                            />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="field-help">
+                    {multiple
+                      ? "Games run one at a time. Completed output is kept if the queue stops."
+                      : "Image checked means its files can be read; console compatibility is not verified."}
+                  </p>
                 </>
               )}
             </section>
+            {s.status !== "completed" && (
+              <section
+                className="card destination-card"
+                aria-labelledby="destination-heading"
+              >
+                <div className="section-label">
+                  <span className="step" aria-hidden="true">
+                    03
+                  </span>
+                  <h2 id="destination-heading">Destination</h2>
+                </div>
+                <div className="destination-controls">
+                  <div className="location-control">
+                    <span className="field-label">Save location</span>
+                    <div className="folder-row">
+                      <span className="folder-icon">
+                        <Icon name="folder" size={26} />
+                      </span>
+                      <div className="folder-info">
+                        <strong>
+                          {s.destination?.split("/").pop() ||
+                            "Choose a location"}
+                        </strong>
+                        {s.destination && (
+                          <p className="path" title={s.destination}>
+                            {s.destination}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        className="secondary"
+                        onClick={chooseFolder}
+                        aria-label="Choose destination folder"
+                        disabled={locked || !native}
+                      >
+                        <HugeiconsIcon
+                          icon={FolderOpenIcon}
+                          size={18}
+                          aria-hidden="true"
+                        />
+                        {s.destination ? "Change folder" : "Choose folder"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="output-name">
+                    {multiple ? (
+                      <p className="hint">
+                        Folder names come from each ISO. Existing folders are
+                        preserved by adding a numbered suffix.
+                      </p>
+                    ) : (
+                      <>
+                        <label className="field-label" htmlFor="subfolder">
+                          Output folder name
+                        </label>
+                        <input
+                          id="subfolder"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          disabled={locked || !s.image}
+                          placeholder="Choose a game image first"
+                          autoComplete="off"
+                          spellCheck={false}
+                        />
+                        <p className="field-help">
+                          A new folder inside your chosen location
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {s.destination && s.image && (
+                  <p className="output-preview">
+                    <span>Output location</span>
+                    <span
+                      title={`${s.destination}/${multiple ? "<one folder per game>" : name}`}
+                    >
+                      {s.destination}/
+                      {multiple
+                        ? "<one folder per game>"
+                        : name || "<folder name>"}
+                    </span>
+                  </p>
+                )}
+              </section>
+            )}
           </>
         )}
         <section
@@ -658,18 +884,27 @@ function App() {
               <div className="result-icon">
                 <Icon name="check" size={36} />
               </div>
-              <h2>{multiple ? "Queue complete" : "Extraction complete"}</h2>
+              <h2>
+                {multiple
+                  ? "Queue complete"
+                  : format === "god"
+                    ? "GOD package complete"
+                    : "Extraction complete"}
+              </h2>
               <p>
                 {multiple ? `${completed} images · ` : ""}
                 {s.result.files.toLocaleString()} files ·{" "}
-                {bytes(s.result.bytes)} extracted
+                {bytes(s.result.bytes)}{" "}
+                {format === "god" ? "packaged" : "extracted"}
                 {multiple ? " in the last image" : ""}
               </p>
               <div className="result-path">{s.result.path}</div>
               <p className="xex-status">
-                {s.result.hasXex
-                  ? "default.xex found"
-                  : "default.xex was not found. Original Xbox games may use default.xbe."}
+                {format === "god"
+                  ? "Copy the contents of this folder to your Xbox storage, keeping the package and its .data folder together. Activate your exploit before launching from My Games."
+                  : s.result.hasXex
+                    ? "default.xex found"
+                    : "default.xex was not found. Original Xbox games may use default.xbe."}
               </p>
               <div className="actions centered">
                 <button className="primary" onClick={() => call("open_output")}>
@@ -686,7 +921,11 @@ function App() {
               <div className="working-header">
                 <div>
                   <h2>
-                    {s.status === "extracting" ? "Extracting…" : "Checking…"}
+                    {s.status === "extracting"
+                      ? format === "god"
+                        ? "Creating GOD…"
+                        : "Extracting…"
+                      : "Checking…"}
                     {multiple &&
                       ` (${Math.min(completed + 1, s.queue.length)} of ${s.queue.length})`}
                   </h2>
@@ -731,21 +970,25 @@ function App() {
                   ? "Stopping safely…"
                   : multiple
                     ? "Stop Queue"
-                    : "Cancel Extraction"}
+                    : "Cancel"}
               </button>
             </>
           ) : (
             <div className="ready-row">
               <div>
-                <p className="ready-caption" role="status">
-                  {s.partialPath
-                    ? "Resolve partial files to continue"
-                    : !s.image
-                      ? "Select a disc"
-                      : !s.destination
-                        ? "Choose a destination"
-                        : `${s.image.totalFiles.toLocaleString()} files · ${bytes(s.image.totalBytes)}`}
-                </p>
+                {
+                  <p className="ready-caption" role="status">
+                    {s.partialPath
+                      ? "Resolve partial files to continue"
+                      : !s.image
+                        ? "Add a game image to begin"
+                        : !s.destination
+                          ? "Choose where to save the output"
+                          : !multiple && !name.trim()
+                            ? "Give the output folder a name"
+                            : `${s.queue.length} ${multiple ? "games" : "game"} · Ready to ${format === "god" ? "create GOD" : "extract"}`}
+                  </p>
+                }
               </div>
               <button
                 className="primary"
@@ -761,9 +1004,17 @@ function App() {
                 {multiple
                   ? completed
                     ? "Continue Queue"
-                    : "Extract Queue"
-                  : "Extract"}
-                <Icon name="arrow" size={18} />
+                    : format === "god"
+                      ? "Convert Queue"
+                      : "Extract Queue"
+                  : format === "god"
+                    ? "Create GOD"
+                    : "Extract"}
+                <HugeiconsIcon
+                  icon={FileDownloadIcon}
+                  size={18}
+                  aria-hidden="true"
+                />
               </button>
             </div>
           )}
@@ -781,7 +1032,7 @@ function App() {
               <strong>
                 {["cancelled", "interrupted"].includes(error.category)
                   ? error.message
-                  : "Couldn't finish extracting this image"}
+                  : "Couldn't finish this image"}
               </strong>
               {!["cancelled", "interrupted"].includes(error.category) && (
                 <p>{error.message}</p>
@@ -825,26 +1076,72 @@ function App() {
             {notice}
           </p>
         )}
-        <details className="details">
-          <summary>Details</summary>
-          <div className="details-content">
-            <p className="hint">Xbox / Xbox 360 · xdvdfs 0.8.3 · Offline</p>
-            <p className="hint">
-              Each disc gets its own folder. Existing folders are preserved.
-            </p>
-            <pre tabIndex={0}>
-              {[...s.logs, error?.detail].filter(Boolean).join("\n")}
-            </pre>
-            <button className="secondary" onClick={copyDetails}>
-              <Icon name="copy" size={15} />
-              Copy Error Details
+        <dialog
+          ref={detailsRef}
+          className="details-sheet"
+          aria-labelledby="sheet-title"
+          onCancel={(event) => {
+            event.preventDefault();
+            closeDetails();
+          }}
+          onClick={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right)
+              closeDetails();
+          }}
+        >
+          <header className="sheet-heading">
+            <h2 id="sheet-title" tabIndex={-1}>
+              Help &amp; details
+            </h2>
+            <button onClick={closeDetails} aria-label="Close details">
+              <HugeiconsIcon icon={Cancel01Icon} size={20} aria-hidden="true" />
             </button>
-            <p className="hint">
-              The copied report excludes full source and output paths. Review
-              before sharing.
+          </header>
+          <div
+            className="sheet-guide"
+            onDragStart={(event) => event.preventDefault()}
+          >
+            <h3>Two ways to play</h3>
+            <p>
+              <strong>Extracted files</strong> unpacks the game into a folder.
+              Use Aurora or another launcher to play it.
+            </p>
+            <p>
+              <strong>Games on Demand (GOD)</strong> creates a package for My
+              Games on Microsoft's dashboard. The necessary console patches must
+              be active. This experimental mode supports single-disc Xbox 360
+              games; install and DLC discs need separate handling. Compatibility
+              still needs testing on your console.
+            </p>
+            <h3>Where your game goes</h3>
+            <p>
+              Browse chooses where to save. Output folder name names the new
+              folder created there. Your source ISO and existing folders are
+              preserved.
             </p>
           </div>
-        </details>
+          <details className="diagnostics-disclosure">
+            <summary>Session diagnostics</summary>
+            <div className="details-content">
+              <p className="hint">Xbox / Xbox 360 · xdvdfs 0.8.3 · Offline</p>
+              <p className="hint">
+                Each disc gets its own folder. Existing folders are preserved.
+              </p>
+              <pre tabIndex={0}>
+                {[...s.logs, error?.detail].filter(Boolean).join("\n")}
+              </pre>
+              <button className="secondary" onClick={copyDetails}>
+                <Icon name="copy" size={15} />
+                Copy diagnostics
+              </button>
+              <p className="hint">
+                The copied report excludes full source and output paths. Review
+                before sharing.
+              </p>
+            </div>
+          </details>
+        </dialog>
         <span className="sr-only" role="status" aria-live="polite">
           {s.status === "extracting"
             ? `Extracting, ${percent} percent`

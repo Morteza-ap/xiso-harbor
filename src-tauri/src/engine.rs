@@ -694,7 +694,7 @@ pub fn extract(
         has_xex: plan.info.has_xex,
     })
 }
-fn rename_exclusive(from: &Path, to: &Path) -> Result<()> {
+pub(crate) fn rename_exclusive(from: &Path, to: &Path) -> Result<()> {
     let from = CString::new(from.as_os_str().as_bytes()).map_err(AppError::invalid)?;
     let to = CString::new(to.as_os_str().as_bytes()).map_err(AppError::invalid)?;
     #[cfg(target_os = "macos")]
@@ -716,3 +716,49 @@ fn rename_exclusive(from: &Path, to: &Path) -> Result<()> {
 #[cfg(test)]
 #[path = "engine/tests.rs"]
 mod tests;
+
+// Expose only the already validated game partition and a bounded executable header.
+// GOD never invokes a second filesystem parser or extracts to a temporary game folder.
+impl Plan {
+    pub(crate) fn god_input(&mut self) -> Result<(File, u64, Vec<u8>)> {
+        if self.entries.iter().any(|e| {
+            e.path
+                .components()
+                .next()
+                .is_some_and(|c| c.as_os_str().eq_ignore_ascii_case("content"))
+        }) {
+            return Err(AppError::new(
+                "god",
+                "This disc contains installation or add-on content.",
+                "Use Game folder mode and follow this game's installation instructions.",
+                "Installation-content discs are excluded from the GOD prototype.",
+            ));
+        }
+        let entry = self
+            .entries
+            .iter()
+            .find(|e| !e.directory && e.path.to_string_lossy().eq_ignore_ascii_case("default.xex"))
+            .ok_or_else(|| {
+                AppError::invalid(
+                    "GOD currently supports Xbox 360 images with a root default.xex only.",
+                )
+            })?;
+        let mut header = vec![0; entry.size.min(1024 * 1024) as usize];
+        self.image
+            .read(entry.offset, &mut header)
+            .map_err(AppError::invalid)?;
+        self.image
+            .read(0, &mut [0u8; 1])
+            .map_err(AppError::invalid)?;
+        let device = self.image.get_mut();
+        let meta = device.file.metadata().map_err(AppError::invalid)?;
+        if meta.len() != self.info.size || meta.modified().ok() != self.modified {
+            return Err(AppError::invalid("Source image changed after validation."));
+        }
+        let base = device.file.stream_position().map_err(AppError::invalid)? - 1;
+        let mut file = device.file.try_clone().map_err(AppError::invalid)?;
+        file.seek(SeekFrom::Start(base))
+            .map_err(AppError::invalid)?;
+        Ok((file, device.len - base, header))
+    }
+}

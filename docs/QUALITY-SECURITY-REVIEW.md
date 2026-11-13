@@ -2,7 +2,7 @@
 
 **Review date:** 2026-10-17 · **Build:** 1.0.1 · **Target:** aarch64-apple-darwin
 
-This is a historical in-repository engineering review, automated dependency scan, and regression test pass for 1.0.1. It is not an independent penetration test, security certification, or guarantee against every hostile image. See [the 1.0.2 release verification](review/release-1.0.2.md) for the current experimental download. The project now uses MIT and has private vulnerability reporting enabled.
+This is a historical in-repository engineering review, automated dependency scan, and regression test pass for 1.0.1. It is not an independent penetration test, security certification, or guarantee against every hostile image. See the [1.1.0 release verification](review/release-1.1.0.md) for the current experimental download; [1.0.2 verification](review/release-1.0.2.md) records the earlier package. The project uses MIT and has private vulnerability reporting enabled.
 
 ## Findings and changes
 

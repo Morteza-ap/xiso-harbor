@@ -1,0 +1,319 @@
+/* Quiet common regions: visual structure shared by both output formats. */
+:root {
+  --work-surface: #101a13;
+  --work-border: #344439;
+  --work-raised: #17241b;
+}
+:root[data-format="god"] {
+  --work-surface: #141414;
+  --work-border: #383838;
+  --work-raised: #202020;
+}
+main .card {
+  background: var(--work-surface);
+  border: 1px solid var(--work-border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+main .section-label {
+  margin-bottom: 16px;
+}
+main .section-label h2 {
+  font-size: 13px;
+  margin: 0;
+}
+main .section-label .step {
+  line-height: 1;
+}
+main .mode-heading {
+  margin-bottom: 16px;
+}
+main .format-card .mode-title {
+  font-size: 34px;
+}
+main .mode-route {
+  font-size: 10px;
+  margin-top: 8px;
+}
+main .disc-motif {
+  height: 64px;
+  flex-basis: 64px;
+}
+main .disc-engraving,
+:root[data-format="god"] main .disc-engraving {
+  width: 64px;
+  height: 64px;
+  transform: none;
+  transform-origin: center;
+  transition: color 360ms var(--ease);
+  animation: harbor-disc-spin 72s linear infinite;
+}
+main .disc-engraving::before {
+  inset: 4.8%;
+}
+main .disc-engraving::after {
+  inset: 30.77%;
+}
+main .disc-groove {
+  inset: 10.58%;
+}
+main .disc-hub {
+  inset: 41.35%;
+}
+@keyframes harbor-disc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  main .disc-engraving {
+    animation: none;
+  }
+}
+main .format-options {
+  border: 1px solid var(--work-border);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+main .format-options::after {
+  display: none;
+}
+main .format-options label {
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  gap: 10px;
+}
+main .format-options label + label,
+main .format-options label.selected + label,
+main .format-options label + label.selected {
+  border-left: 1px solid transparent;
+}
+main .format-options label.selected,
+main .format-options label + label.selected {
+  background: var(--work-raised);
+  border: 1px solid var(--muted);
+}
+main .format-options input {
+  position: static;
+  opacity: 1;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+main .format-options small {
+  font-size: 10px;
+}
+main .drop-zone {
+  border: 1px dashed var(--work-border);
+  background: var(--field-background);
+  padding: 20px 16px;
+  min-height: 96px;
+  flex-wrap: wrap;
+}
+main .drop-description h3 {
+  font-size: 18px;
+}
+main .drop-description {
+  min-width: 170px;
+}
+main .drop-description p {
+  font-size: 11px;
+}
+.games-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+.selected-games {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.selected-games li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid var(--work-border);
+}
+.selected-games li > svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.selected-game-copy {
+  min-width: 0;
+  flex: 1;
+}
+.selected-game-copy strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.selected-game-copy span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.game-state {
+  color: var(--muted);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.icon-button {
+  padding: 8px;
+  flex-shrink: 0;
+}
+main .destination-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.location-control {
+  min-width: 0;
+}
+main .folder-info strong {
+  overflow-wrap: anywhere;
+}
+main .folder-row button {
+  flex-shrink: 0;
+}
+main .destination-controls .folder-row {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--field-background);
+  border: 1px solid var(--work-border);
+  border-radius: 12px;
+}
+main .destination-controls .folder-icon {
+  display: grid;
+  width: 24px;
+}
+main .output-preview {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  margin: 16px 0 0;
+}
+.output-preview span:last-child {
+  font:
+    10px/1.5 ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+}
+main .process-card {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: calc(100% - 64px);
+  max-width: 736px;
+  z-index: 3;
+  background: var(--work-surface);
+  border: 1px solid var(--work-border);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  padding: 16px 20px;
+  margin: 0;
+}
+main .process-card.success-card {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  animation: none;
+}
+main .ready-row {
+  flex-direction: row;
+  align-items: center;
+}
+main .ready-row p {
+  font-size: 11px;
+}
+main .ready-row .primary {
+  width: auto;
+  flex-shrink: 0;
+}
+main .alert,
+main .partial-card {
+  scroll-margin-bottom: 240px;
+}
+.diagnostics-disclosure {
+  border-top: 1px solid var(--work-border);
+  padding-top: 20px;
+  margin-top: 24px;
+}
+.diagnostics-disclosure summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+.sheet-heading {
+  position: sticky;
+  top: -24px;
+  background: var(--editorial-surface);
+  padding: 16px 0;
+  z-index: 1;
+}
+@media (max-width: 660px) {
+  main {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  main .card {
+    padding: 16px;
+  }
+  main .format-card .mode-title {
+    font-size: 30px;
+  }
+  main .process-card {
+    width: calc(100% - 40px);
+  }
+  .game-state {
+    max-width: 64px;
+  }
+}
+@media (max-width: 440px) {
+  main .format-options {
+    grid-template-columns: 1fr;
+  }
+  main .ready-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  main .ready-row .primary {
+    width: 100%;
+  }
+  .selected-games li {
+    flex-wrap: wrap;
+  }
+}
+
+main {
+  padding-bottom: 128px;
+}
+main.is-working {
+  padding-bottom: 244px;
+}
+main.is-complete {
+  padding-bottom: 520px;
+}
+
+.sheet-guide {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#sheet-title:focus {
+  outline: none;
+}

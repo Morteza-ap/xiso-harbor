@@ -1,9 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod batch;
 mod engine;
+mod god;
 mod storage;
 use engine::{AppError, ExtractionResult, ImageInfo, Partial, Progress};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+enum OutputFormat {
+    #[default]
+    Folder,
+    God,
+}
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -19,6 +28,7 @@ use tauri::{Emitter, Manager, State};
 #[serde(rename_all = "camelCase")]
 struct Snapshot {
     status: String,
+    output_format: OutputFormat,
     progress: Progress,
     image: Option<ImageInfo>,
     queue: Vec<QueueItem>,
@@ -32,6 +42,7 @@ impl Default for Snapshot {
     fn default() -> Self {
         Self {
             status: "idle".into(),
+            output_format: OutputFormat::Folder,
             progress: Progress::default(),
             image: None,
             queue: vec![],
@@ -39,7 +50,10 @@ impl Default for Snapshot {
             partial_path: None,
             result: None,
             error: None,
-            logs: vec!["Xiso Harbor 1.0.2 • xdvdfs 0.8.3 • native arm64".into()],
+            logs: vec![format!(
+                "Xiso Harbor {} • xdvdfs 0.8.3 • native arm64",
+                env!("CARGO_PKG_VERSION")
+            )],
         }
     }
 }
@@ -170,7 +184,11 @@ async fn inspect(
     result.map(|_| ())
 }
 #[tauri::command]
-async fn choose_iso(app: tauri::AppHandle, state: State<'_, Arc<Session>>) -> engine::Result<()> {
+async fn choose_iso(
+    app: tauri::AppHandle,
+    state: State<'_, Arc<Session>>,
+    append: Option<bool>,
+) -> engine::Result<()> {
     if state.busy.load(Ordering::SeqCst) || state.partial.lock().unwrap().is_some() {
         return Err(AppError::new(
             "busy",
@@ -191,12 +209,23 @@ async fn choose_iso(app: tauri::AppHandle, state: State<'_, Arc<Session>>) -> en
     else {
         return Ok(());
     };
-    inspect(
-        app,
-        state.inner().clone(),
-        files.iter().map(|f| f.path().to_path_buf()).collect(),
-    )
-    .await
+    let mut paths: Vec<PathBuf> = if append.unwrap_or(false) {
+        let snapshot = state.snapshot.lock().unwrap();
+        if snapshot.queue.iter().any(|item| item.result.is_some()) {
+            return Err(AppError::invalid(
+                "Finish or reset the queue before adding games. Completed outputs are preserved.",
+            ));
+        }
+        snapshot
+            .queue
+            .iter()
+            .map(|item| PathBuf::from(&item.image.path))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    paths.extend(files.iter().map(|f| f.path().to_path_buf()));
+    inspect(app, state.inner().clone(), paths).await
 }
 #[tauri::command]
 async fn inspect_drop(
@@ -269,7 +298,9 @@ fn start_extraction(
     app: tauri::AppHandle,
     state: State<'_, Arc<Session>>,
     name: String,
+    format: Option<OutputFormat>,
 ) -> engine::Result<()> {
+    let format = format.unwrap_or_default();
     if state.partial.lock().unwrap().is_some() {
         return Err(AppError::new(
             "partial",
@@ -278,7 +309,13 @@ fn start_extraction(
             "Pending partial output.",
         ));
     }
-    let queue = state.snapshot.lock().unwrap().queue.clone();
+    let mut queue = state.snapshot.lock().unwrap().queue.clone();
+    if state.snapshot.lock().unwrap().output_format != format {
+        for item in &mut queue {
+            item.result = None;
+            item.status = "pending".into();
+        }
+    }
     if queue.is_empty() {
         return Err(AppError::invalid("Choose an ISO first."));
     }
@@ -291,6 +328,10 @@ fn start_extraction(
         )
     })?;
     state.acquire()?;
+    state.update(&app, |s| {
+        s.output_format = format;
+        s.queue = queue.clone();
+    });
     *state.started.lock().unwrap() = Some(Instant::now());
     state.update(&app, |s| {
         s.status = "validating".into();
@@ -320,18 +361,22 @@ fn start_extraction(
             // A panic is a failure, never a success; retain the recovery record.
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
                 || -> engine::Result<ExtractionResult> {
-                    let plan = engine::scan(Path::new(&item.image.path), state.cancel.clone())?;
+                    let mut plan = engine::scan(Path::new(&item.image.path), state.cancel.clone())?;
+                    let god_plan = if format == OutputFormat::God {
+                        Some(god::GodPlan::new(&mut plan)?)
+                    } else {
+                        None
+                    };
+                    let needed = god_plan
+                        .as_ref()
+                        .map_or(plan.info.total_bytes, |p| p.estimated_bytes());
                     let folder_name = if queue.len() == 1 {
                         name.clone()
                     } else {
                         engine::unique_name(&parent, &plan.info.suggested_name)
                     };
-                    let (partial, final_path) = engine::prepare(
-                        &parent,
-                        &folder_name,
-                        plan.info.total_bytes,
-                        plan.info.total_files,
-                    )?;
+                    let (partial, final_path) =
+                        engine::prepare(&parent, &folder_name, needed, plan.info.total_files)?;
                     if let Err(error) = state.save_partial(&partial) {
                         let _ = partial.delete();
                         return Err(error);
@@ -339,13 +384,19 @@ fn start_extraction(
                     state.update(&app, |s| {
                         s.status = "extracting".into();
                         s.partial_path = Some(partial.path.to_string_lossy().into());
-                        s.logs.push(
-                            "Native streaming extraction started. Copy buffer: 1 MiB.".into(),
-                        );
+                        s.logs.push(if format == OutputFormat::God {
+                            "Experimental single-disc GOD conversion started; source partition padding is preserved.".into()
+                        } else { "Native streaming extraction started. Copy buffer: 1 MiB.".into() });
                     });
-                    let result = engine::extract(plan, &partial, &final_path, &state.cancel, |p| {
-                        state.update(&app, |s| s.progress = p)
-                    });
+                    let result = if let Some(god_plan) = god_plan {
+                        god::convert(god_plan, &partial, &final_path, &state.cancel, |p| {
+                            state.update(&app, |s| s.progress = p)
+                        })
+                    } else {
+                        engine::extract(plan, &partial, &final_path, &state.cancel, |p| {
+                            state.update(&app, |s| s.progress = p)
+                        })
+                    };
                     if result.is_ok() {
                         if let Err(error) = state.clear_partial() {
                             *state.partial.lock().unwrap() = None;
@@ -525,7 +576,8 @@ fn copy_diagnostics(state: State<'_, Arc<Session>>, error: Option<AppError>) -> 
     use objc2_foundation::NSString;
     let snapshot = state.snapshot.lock().unwrap();
     let mut report = format!(
-        "Xiso Harbor 1.0.2 / xdvdfs 0.8.3 / arm64\nState: {}\nFiles: {}/{}\nBytes: {}/{}\n",
+        "Xiso Harbor {} / xdvdfs 0.8.3 / arm64\nState: {}\nFiles: {}/{}\nBytes: {}/{}\n",
+        env!("CARGO_PKG_VERSION"),
         snapshot.status,
         snapshot.progress.files_done,
         snapshot.progress.total_files,
